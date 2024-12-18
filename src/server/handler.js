@@ -4,30 +4,41 @@ const storeData = require('../services/storeData');
 const { Firestore } = require('@google-cloud/firestore');
 
 async function postPredictHandler(request, h) {
-  const { image } = request.payload;
-  const { model } = request.server.app;
-  
-  const { result, suggestion } = await predictClassification(model, image);
-  const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
+  try {
+      const { image } = request.payload;
+      const { model } = request.server.app;
 
-  const data = {
-    "id": id,
-    "result": result,
-    "suggestion": suggestion,
-    "createdAt": createdAt
-}
+      const { result, suggestion } = await predictClassification(model, image);
+      const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
 
-  await storeData(id, data);
-  
-  const response = h.response({
-    status: 'success',
-    message: 'Model is predicted successfully',
-    data: data
-  });
+      const data = {
+          id: id,
+          result: result,
+          suggestion: suggestion,
+          createdAt: createdAt
+      };
 
-  response.code(201);
-  return response;
+      await storeData(id, data);
+
+      const response = h.response({
+          status: 'success',
+          message: 'Model is predicted successfully',
+          data: data
+      });
+
+      response.code(201);
+      return response;
+  } catch (error) {
+      console.error(error);
+      const response = h.response({
+          status: 'fail',
+          message: 'An error occurred while processing the prediction'
+      });
+
+      response.code(500);
+      return response;
+  }
 }
 
 async function getHistoriesHandler(request, h) {
