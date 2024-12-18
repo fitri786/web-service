@@ -13,16 +13,14 @@ async function predictClassification(model, image) {
         const score = await prediction.data();
         const confidenceScore = score[0] * 100;
 
-
         let result, suggestion;
         
         if (confidenceScore > 50) {
             result = "Cancer";
             suggestion = "Segera periksa ke dokter!";
-        }
-        else{
+        } else {
             result = "Non-cancer";
-            suggestion = "Anda sehat!";
+            suggestion = "Penyakit kanker tidak terdeteksi."; // Change this line
         }
 
         return { result, suggestion };
