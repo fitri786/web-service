@@ -13,8 +13,8 @@ const routes = [
     options: {
       payload: {
         multipart: true,
-        allow: 'multipart/form-data',
-        maxSize: 1000000, 
+        allow: 'multipart/form-data'
+        // maxSize: 1000000, 
       },
     },
   },
