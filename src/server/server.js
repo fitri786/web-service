@@ -1,73 +1,63 @@
 require('dotenv').config();
 
-const express = require('express');
 const Hapi = require('@hapi/hapi');
 const routes = require('../server/routes');
 const loadModel = require('../services/loadModel');
 const InputError = require('../exceptions/InputError');
 
-const app = express();
-
 async function startServer() {
-    const server = Hapi.server({
-        port: process.env.PORT ||3000,
-        host: '0.0.0.0',
-        routes: {
-            cors: {
-                origin: ['*'],
+    try {
+        const server = Hapi.server({
+            port: process.env.PORT || 3000,
+            host: '0.0.0.0',
+            routes: {
+                cors: {
+                    origin: ['*'],
+                },
             },
-        },
-    });
+        });
 
-    app.use('/', routes);
+        // Load your model
+        const model = await loadModel();
+        server.app.model = model;
 
-    app.listen(3000, () => {
-        console.log('Server listening on port 3000');
-      });
-    async function startServer() {
-        try {
-        
-        } catch (error) {
-            console.error('Error starting server:', error);
-            process.exit(1); 
-        }
+        // Set up routes
+        server.route(routes);
+
+        // Error handling for payload limits and other errors
+        server.ext('onPreResponse', function (request, h) {
+            const response = request.response;
+
+            // Respon Limit size File
+            if (response.isBoom && response.output.statusCode === 413) {
+                const newResponse = h.response({
+                    status: 'fail',
+                    message: 'Payload content length greater than maximum allowed: 1000000',
+                });
+                newResponse.code(413);
+                return newResponse;
+            }
+
+            if (response instanceof InputError || response.isBoom) {
+                const statusCode = response instanceof InputError ? response.statusCode : response.output.statusCode;
+                const newResponse = h.response({
+                    status: 'fail',
+                    message: 'Terjadi kesalahan dalam melakukan prediksi',
+                });
+                newResponse.code(parseInt(statusCode));
+                return newResponse;
+            }
+
+            return h.continue;
+        });
+
+        // Start the Hapi server
+        await server.start();
+        console.log(`Server started at: ${server.info.uri}`);
+    } catch (error) {
+        console.error('Error starting server:', error);
+        process.exit(1);
     }
-
-    const model = await loadModel();
-    server.app.model = model;
-
-    server.route(routes);
-
-    server.ext('onPreResponse', function (request, h) {
-        const response = request.response;
-
-        // Respon Limit size File
-        if (response.isBoom && response.output.statusCode === 413) {
-            const newResponse = h.response({
-                status: 'fail',
-                message: 'Payload content length greater than maximum allowed: 1000000',
-            });
-
-            newResponse.code(413);
-            return newResponse;
-        }
-
-        if (response instanceof InputError || response.isBoom) {
-            const statusCode = response instanceof InputError ? response.statusCode : response.output.statusCode;
-            const newResponse = h.response({
-                status: 'fail',
-                message: 'Terjadi kesalahan dalam melakukan prediksi',
-            });
-
-            newResponse.code(parseInt(statusCode));
-            return newResponse;
-        }
-
-        return h.continue;
-    });
-
-    await server.start();
-    console.log(`Server start at: ${server.info.uri}`);
 }
 
 startServer();
