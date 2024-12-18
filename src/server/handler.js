@@ -32,8 +32,9 @@ async function postPredictHandler(request, h) {
   } catch (error) {
       console.error(error);
       const response = h.response({
-          status: 'fail',
-          message: 'An error occurred while processing the prediction'
+          status: 'error',  // Change from 'fail' to 'error' for consistency
+          message: 'An error occurred while processing the prediction',
+          error: error.message  // Include error details for debugging
       });
 
       response.code(500);
